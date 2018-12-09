@@ -106,7 +106,7 @@ server
 //Updating post
 server
   .put('/api/posts/:id', (req, res) => {
-    const post = req.params;
+    const post = req.body;
     const {id} = req.params;
     if(post.title && post.contents){
       db.update(id, post)
