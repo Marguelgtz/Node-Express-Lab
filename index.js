@@ -112,9 +112,11 @@ server
       db.update(id, post)
         .then(count => {
           if(count){
-            res
-              .status(200)
-              .json(count);
+            db.findById(id)
+              .then(post => {
+                res
+                  .json(post[0])
+              })
           } else {
             res
               .status(404)
