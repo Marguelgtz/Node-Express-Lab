@@ -2,31 +2,33 @@
 const express = require('express');
 const db = require('./data/db.js');
 
-
 const server = express();
+const parser = express.json();
 const PORT = 4000;
-// add your server code starting here
+
+server.use(parser);
+
+// endoints
 
 // Get all posts
 server
   .get('/api/posts', (req, res) => {
-    db
-      .find()
+    db.find()
       .then(posts => {
         res.json(posts)
       })
-      .catch(err => {
+      .catch(err => { 
         res
           .status(500)
           .json({message: 'failed to get posts'})
       })
   })
 
+//get post by id
 server
   .get('/api/posts/:id', (req, res) => {
     const {id} = req.params;
-    db
-      .findById(id) 
+    db.findById(id) 
       .then(post => {
         console.log(post);
         if(post[0]) {
@@ -44,7 +46,94 @@ server
       })
   })
 
+//add post
+server
+  .post('/api/posts', (req, res) => {
+    const post = req.body;
+    if(post.title && post.contents){
+      db.insert(post)
+        .then(idInfo => {
+          db.findById(idInfo.id)
+            .then(post => {
+              res
+                .status(201)
+                .json(post[0])
+            })
+        })
+        .catch(err => {
+          res.status(500)
+            .json({message: 'failed to insert post'})
+        });
+    } else {
+      res
+        .status(400)
+        .json({message: "Missing title or content"})
+    }
+  })
+
+//Post delete
+server  
+  .delete('/api/posts/:id', (req,res) => {
+    const {id} = req.params;
+    // Gets the post title before is deleted to be able to send it as an response
+    const postTitle = 
+      db.findById(id)
+        .then(post => {
+          res
+            .json({message: `${post[0].title} has been deleted`})
+        })
+
+    db.remove(id)
+      .then(count => {
+        if(count){
+          //something has been deleted
+          //send back post
+          postTitle;
+        } else {
+          //item already deleted or never existed
+          res
+            .status(404)
+            .json({message: "invalid id"})
+        }
+      })
+      .catch(err => {
+        res
+          .status(500)
+          .json({message: "failed to delete post"})
+      });
+  })
+
+//Updating post
+server
+  .put('/api/posts/:id', (req, res) => {
+    const post = req.params;
+    const {id} = req.params;
+    if(post.title && post.contents){
+      db.update(id, post)
+        .then(count => {
+          if(count){
+            res
+              .status(200)
+              .json(count);
+          } else {
+            res
+              .status(404)
+              .json({message: "Invalid id"})
+          }
+        })
+        .catch(err => {
+          res
+            .status(500)
+            .json({message: "Failed to update post"})
+        });
+    } else {
+      res
+        .status(400)
+        .json({message: "Missing title or content"})
+    }
+  })
+
 // Listening 
 server.listen(PORT, () => {
-  console.log(`Server runnign on port ${PORT}`)
+  console.log(`Server running on port ${PORT}`)
 })
